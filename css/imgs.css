@@ -1,0 +1,14 @@
+/* Banners and Images */
+.banner-intro {
+    width: auto;
+    height: 450px;
+    background-image: url('../images/Assets/P.Banners/SasolburgBanner.png');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+    border: 3px solid var(--primary-color);
+
+    box-shadow: 0 0 10px 1px;
+}
+

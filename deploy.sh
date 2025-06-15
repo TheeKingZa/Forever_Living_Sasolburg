@@ -1,78 +1,61 @@
-#!/bin/bash
+#!/usr/bin/bash
 
-# Set the names of your branches
-pages_branch="gh-pages"
-master_branch="master"
+# Color codes
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Check if git is installed
-if ! command -v git &> /dev/null; then
-  echo "Error: Git is not installed. Please install Git before proceeding."
-  exit 1
-fi
+# Git deployment script for inVaal [016] Media House
+deploy_to_github() {
+    # Ensure the user is on the master branch before deploying
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
 
-# Check if the master branch exists. If not, create it.
-if ! git branch -l | grep -q "$master_branch"; then
-  echo "Creating master branch..."
-  git checkout -b $master_branch
-  git push -u origin $master_branch
-  echo "Successfully created master branch."
-else
-  echo "Master branch already exists. Proceeding..."
-fi
+    if [ "$current_branch" != "master" ]; then
+        echo -e "${YELLOW}Switching to master branch...${NC}"
+        git checkout master 2>/dev/null || git checkout -b master
+    fi
 
-# Check if the gh-pages branch exists. If not, create it.
-if ! git branch -l | grep -q "$pages_branch"; then
-  echo "Creating gh-pages branch..."
-  git checkout --orphan $pages_branch
-  git rm -rf .
-  git commit -m "Initial commit for gh-pages"
-  git push --set-upstream origin $pages_branch
-  echo "Successfully created gh-pages branch."
-else
-  echo "gh-pages branch already exists. Proceeding with deployment..."
-fi
+    # Add all changes
+    git add .
 
-# Build your website (replace with your actual build command)
-echo "Building website..."
-# Add your build command here if needed
+    # Prompt for commit message
+    read -p "Enter commit message: " commit_message
 
-# Check for changes in the master branch
-git checkout $master_branch
-if [[ -n $(git status -s) ]]; then
-  # Prompt for a commit message
-  read -p "Enter commit message for master branch: " commit_message
-  git add .
-  git commit -m "$commit_message"
-  git push origin $master_branch
-  echo "Changes pushed to master branch."
-else
-  echo "No changes to push to master branch."
-fi
+    # Commit changes
+    git commit -m "$commit_message"
 
-# Update gh-pages branch with the latest from master
-git checkout $pages_branch
-git checkout $master_branch -- .
-git add .
-git commit -m "Update gh-pages from master"
+    # Push to master branch
+    git push origin master
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to push to master. Check your Git configuration.${NC}"
+        exit 1
+    fi
 
-# Prompt for force push
-read -p "Do you want to force push to gh-pages? (y/n): " force_push_answer
-if [[ "$force_push_answer" == "y" ]]; then
-  echo "Force pushing to gh-pages..."
-  git push origin $pages_branch --force
-  echo "Force push completed."
-else
-  echo "Pushing to gh-pages..."
-  git push origin $pages_branch
-  echo "Push completed."
-fi
+    echo -e "${GREEN}master branch updated successfully.${NC}"
 
-# Check if the branches are identical
-if git diff --quiet $master_branch $pages_branch; then
-  echo "The master and gh-pages branches are identical."
-else
-  echo "The master and gh-pages branches are different."
-fi
+    # Check if gh-pages branch exists
+    if git show-ref --quiet refs/heads/gh-pages; then
+        echo -e "${GREEN}gh-pages branch exists. Updating...${NC}"
+        git checkout gh-pages
+        git merge master --no-edit
+    else
+        echo -e "${YELLOW}gh-pages branch does not exist. Creating it...${NC}"
+        git checkout -b gh-pages
+        git merge master --no-edit
+    fi
 
-# Return to master branch
-git checkout $master_branch
+    # Push to gh-pages branch
+    git push origin gh-pages
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Deployment to gh-pages successful!${NC}"
+    else
+        echo -e "${RED}Failed to deploy to gh-pages.${NC}"
+    fi
+
+    # Switch back to master branch
+    git checkout master
+}
+
+# Run deployment function
+deploy_to_github
