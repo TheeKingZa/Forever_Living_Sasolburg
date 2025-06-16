@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let fullMenu = [];
   
     // Fetch menu data from JSON file
-    fetch("./data/menu.json")
+    fetch("./data/ProductList.json")
       .then(response => {
         if (!response.ok) {
           throw new Error("Failed to load menu data");
